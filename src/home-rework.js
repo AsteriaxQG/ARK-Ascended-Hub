@@ -50,17 +50,16 @@ async function run(){
     if(hero&&!q('.hero-mini-status',hero)){
       const actions=q('.actions',hero);actions?.insertAdjacentHTML('beforebegin','<div class="hero-mini-status"><span>LIVE</span><b>Infos ASA à jour</b><i>Patchs · News · Bestiaire · Outils</i></div>');
     }
+    if(!q('#asteriaxDiscord',app)){
+      if(hero)hero.insertAdjacentHTML('afterend',discordMarkup());
+      else app.insertAdjacentHTML('afterbegin',discordMarkup());
+    }
     if(!q('#latestPatch',app)){
       const p=await patchData();
       const dash=q('.dashboard-strip',app);
-      if(dash)dash.insertAdjacentHTML('afterend',patchMarkup(p));else hero?.insertAdjacentHTML('afterend',patchMarkup(p));
+      if(dash)dash.insertAdjacentHTML('afterend',patchMarkup(p));else q('#asteriaxDiscord',app)?.insertAdjacentHTML('afterend',patchMarkup(p));
       const consoleHead=q('.hero-console .console-head',hero);
       if(consoleHead&&!q('.console-patch',consoleHead))consoleHead.insertAdjacentHTML('beforeend',`<span class="console-patch">PATCH ${esc(p.version)}</span>`);
-    }
-    if(!q('#asteriaxDiscord',app)){
-      const quickSection=[...app.querySelectorAll('.section')].find(s=>q('h2',s)?.textContent.trim()==='Prépare ta session');
-      if(quickSection)quickSection.insertAdjacentHTML('afterend',discordMarkup());
-      else app.insertAdjacentHTML('beforeend',discordMarkup());
     }
   }finally{running=false}
 }
