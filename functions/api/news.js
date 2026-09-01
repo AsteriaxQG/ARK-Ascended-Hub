@@ -1,37 +1,175 @@
 const HOME = 'https://survivetheark.com/';
-const decode = s => String(s||'').replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&#039;/g,"'").replace(/&quot;/g,'"').replace(/\s+/g,' ').trim();
+const NOW = Date.now();
+
+const FALLBACK = [
+  {
+    title:'Community Crunch 521: Big Ship Energy',
+    date:'2026-08-29T00:00:00Z',
+    author:'Studio Wildcard',
+    url:'https://survivetheark.com/index.php?/forums/topic/774175-community-crunch-521-big-ship-energy/',
+    category:'Community Crunch',
+    summary:'Le Galleon prend la mer, avec les dernières informations officielles ARK: Survival Ascended.'
+  },
+  {
+    title:'Astraeos Heaven & Abyss Update is now live!',
+    date:'2026-08-27T17:07:00Z',
+    author:'Studio Wildcard',
+    url:'https://survivetheark.com/index.php?/forums/topic/774170-astraeos-heaven-abyss-update-is-now-live/',
+    category:'Mise à jour',
+    summary:'Astraeos 1.0, Heaven & Abyss, nouveaux environnements, Trireme, Boaratos et nouveaux combats de boss.'
+  },
+  {
+    title:'Community Crunch 520: Three heads. One very good boy.',
+    date:'2026-08-22T00:00:00Z',
+    author:'Studio Wildcard',
+    url:'https://survivetheark.com/index.php?/forums/topic/774159-community-crunch-520-three-heads-one-very-good-boy/',
+    category:'Community Crunch',
+    summary:'Actualités officielles ARK, événements, réseau officiel et nouveautés communautaires.'
+  },
+  {
+    title:'Community Crunch 519: Tusk, Tusk, Boom!',
+    date:'2026-08-15T00:00:00Z',
+    author:'Studio Wildcard',
+    url:'https://survivetheark.com/index.php?/forums/topic/774142-community-crunch-519-tusk-tusk-boom/',
+    category:'Community Crunch',
+    summary:'Présentation du Boaratos et des nouveautés prévues pour Astraeos.'
+  },
+  {
+    title:'Community Crunch 518: Long Live the King!',
+    date:'2026-08-08T00:00:00Z',
+    author:'Studio Wildcard',
+    url:'https://survivetheark.com/',
+    category:'Community Crunch',
+    summary:'Actualités officielles et aperçu des nouveautés ARK: Survival Ascended.'
+  }
+];
+
+const decode = s => String(s||'')
+  .replace(/<script[\s\S]*?<\/script>/gi,' ')
+  .replace(/<style[\s\S]*?<\/style>/gi,' ')
+  .replace(/<[^>]*>/g,' ')
+  .replace(/&nbsp;/g,' ')
+  .replace(/&amp;/g,'&')
+  .replace(/&#039;/g,"'")
+  .replace(/&quot;/g,'"')
+  .replace(/&#x27;/g,"'")
+  .replace(/\s+/g,' ')
+  .trim();
+
 const meta = (html, prop) => {
   const re1 = new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i');
   const re2 = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`, 'i');
   return decode((html.match(re1)||html.match(re2)||[])[1]||'');
 };
-async function detail(url){
+
+function normalizeUrl(raw){
+  if(!raw) return '';
+  const clean=raw.replace(/&amp;/g,'&');
+  try{return new URL(clean,HOME).href}catch{return ''}
+}
+
+function bestDate(html){
+  const candidates=[];
+  const metaDates=[
+    meta(html,'article:published_time'),
+    meta(html,'datePublished'),
+    meta(html,'date')
+  ];
+  metaDates.forEach(x=>x&&candidates.push(x));
+
+  for(const m of html.matchAll(/<time[^>]+datetime=["']([^"']+)["']/gi)) candidates.push(m[1]);
+  for(const m of html.matchAll(/["']datePublished["']\s*:\s*["']([^"']+)["']/gi)) candidates.push(m[1]);
+
+  const valid=candidates
+    .map(v=>new Date(v))
+    .filter(d=>!Number.isNaN(d.getTime()) && d.getTime()<=NOW+86400000 && d.getFullYear()>=2025)
+    .sort((a,b)=>b-a);
+  return valid[0]?.toISOString()||'';
+}
+
+function categoryFor(title){
+  if(/Community Crunch/i.test(title)) return 'Community Crunch';
+  if(/update|patch|live|release|launch|roadmap/i.test(title)) return 'Mise à jour';
+  return 'Annonce';
+}
+
+async function detail(url, hintedTitle=''){
   try{
-    const r = await fetch(url,{headers:{'User-Agent':'ARK-Ascended-Hub/1.0'}});
+    const r = await fetch(url,{headers:{'Accept':'text/html','User-Agent':'ARK-Ascended-Hub/2.0 (+https://ark-ascended-hub.pages.dev/)'}});
+    if(!r.ok) return null;
     const h = await r.text();
-    const title = meta(h,'og:title') || decode((h.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]);
-    const summary = meta(h,'og:description') || meta(h,'description');
+    const title = meta(h,'og:title') || hintedTitle || decode((h.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]);
+    const cleanTitle=decode(title.replace(/\s+-\s+Announcements.*$/i,'').replace(/\s+-\s+ARK.*Official.*$/i,''));
+    const summary = meta(h,'og:description') || meta(h,'description') || '';
     const image = meta(h,'og:image');
-    const d = (h.match(/<time[^>]+datetime=["']([^"']+)["']/i)||[])[1] || '';
-    return {title:title.replace(/\s+-\s+Announcements.*$/i,''),summary,image,date:d,author:'Studio Wildcard',url,category:/Community Crunch/i.test(title)?'Community Crunch':'Annonce'};
+    const date = bestDate(h);
+    return {title:cleanTitle,summary,image,date,author:'Studio Wildcard',url,category:categoryFor(cleanTitle)};
   }catch{return null}
 }
+
+function discoverLinks(html){
+  const found=[];
+  const seen=new Set();
+  const re=/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  for(const m of html.matchAll(re)){
+    const url=normalizeUrl(m[1]);
+    const text=decode(m[2]);
+    if(!url||!text) continue;
+    if(!/survivetheark\.com/i.test(url)) continue;
+    if(!/(\/forums\/topic\/|\/articles\.html\/)/i.test(url)) continue;
+    if(!/(Community Crunch|Astraeos|ARK: Survival Ascended|Update|Genesis|Fjordur|Lost Colony|Roadmap|Patch|Tides of Fortune)/i.test(text)) continue;
+    const canonical=url.replace(/([?&])comment=\d+.*$/i,'').replace(/([?&])do=findComment.*$/i,'');
+    if(seen.has(canonical)) continue;
+    seen.add(canonical);
+    found.push({url:canonical,title:text});
+    if(found.length>=18) break;
+  }
+  return found;
+}
+
+function sortAndClean(items){
+  const unique=[];
+  const seen=new Set();
+  for(const item of items){
+    if(!item?.title||!item?.url) continue;
+    const key=item.title.toLowerCase().replace(/[^a-z0-9]+/g,' ');
+    if(seen.has(key)) continue;
+    seen.add(key);
+    unique.push(item);
+  }
+
+  unique.sort((a,b)=>{
+    const ad=Date.parse(a.date||'')||0;
+    const bd=Date.parse(b.date||'')||0;
+    return bd-ad;
+  });
+
+  const recent=unique.filter(x=>{
+    const t=Date.parse(x.date||'');
+    return t && t>=Date.UTC(2026,0,1);
+  });
+  return (recent.length>=5?recent:unique).slice(0,12);
+}
+
 export async function onRequestGet(){
-  const headers={'content-type':'application/json;charset=UTF-8','cache-control':'public,max-age=900','access-control-allow-origin':'*'};
+  const headers={
+    'content-type':'application/json;charset=UTF-8',
+    'cache-control':'public,max-age=300,s-maxage=300',
+    'access-control-allow-origin':'*'
+  };
   try{
-    const r = await fetch(HOME,{headers:{'User-Agent':'ARK-Ascended-Hub/1.0'}});
-    if(!r.ok) throw new Error('source');
+    const r = await fetch(HOME,{headers:{'Accept':'text/html','User-Agent':'ARK-Ascended-Hub/2.0 (+https://ark-ascended-hub.pages.dev/)'}});
+    if(!r.ok) throw new Error(`source ${r.status}`);
     const html=await r.text();
-    const links=[...html.matchAll(/href=["'](https?:\/\/survivetheark\.com\/index\.php\?[^"']*\/forums\/topic\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
-      .map(m=>({url:m[1].replace(/&amp;/g,'&'),text:decode(m[2])}))
-      .filter(x=>x.text && (/(Community Crunch|Update|ARK|Astraeos|Genesis|Fjordur|Lost Colony)/i.test(x.text)));
-    const unique=[]; const seen=new Set();
-    for(const l of links){ if(!seen.has(l.url)){seen.add(l.url);unique.push(l)} if(unique.length>=10)break; }
-    if(!unique.length) throw new Error('parse');
-    const items=(await Promise.all(unique.map(x=>detail(x.url)))).filter(Boolean);
+    const links=discoverLinks(html);
+    if(!links.length) throw new Error('parse');
+
+    const detailed=(await Promise.all(links.map(x=>detail(x.url,x.title)))).filter(Boolean);
+    const items=sortAndClean(detailed);
     if(!items.length) throw new Error('details');
-    return new Response(JSON.stringify({items,live:true,updatedAt:new Date().toISOString()}),{headers});
+
+    return new Response(JSON.stringify({items,live:true,source:'survivetheark.com',updatedAt:new Date().toISOString()}),{headers});
   }catch(e){
-    return new Response(JSON.stringify({items:[],live:false,error:'Source officielle momentanément indisponible.'}),{status:200,headers});
+    return new Response(JSON.stringify({items:FALLBACK,live:false,source:'fallback-2026',updatedAt:new Date().toISOString(),error:'Source officielle momentanément indisponible : affichage du cache récent 2026.'}),{status:200,headers});
   }
 }
