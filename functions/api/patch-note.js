@@ -26,7 +26,7 @@ const decode=s=>String(s||'')
 
 const meta=(html,prop)=>{
   const a=new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`,'i');
-  const b=new RegExp(`<meta[^>]+content=["']([^"']+)[^>]+(?:property|name)=["']${prop}["']`,'i');
+  const b=new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`,'i');
   return decode((html.match(a)||html.match(b)||[])[1]||'');
 };
 
@@ -44,15 +44,7 @@ function polishFrench(text){
     .replace(/crash serveur/gi,'plantage serveur')
     .replace(/Terre brûlée/gi,'Scorched Earth')
     .replace(/Ragnarök/gi,'Ragnarok')
-    .replace(/Extinction/gi,'Extinction')
     .replace(/Genèse/gi,'Genesis')
-    .replace(/Aberration/gi,'Aberration')
-    .replace(/Astraeos/gi,'Astraeos')
-    .replace(/Boaratos/gi,'Boaratos')
-    .replace(/Concavenator/gi,'Concavenator')
-    .replace(/Galleon/gi,'Galleon')
-    .replace(/Trireme/gi,'Trireme')
-    .replace(/Tides of Fortune/gi,'Tides of Fortune')
     .replace(/\s+/g,' ')
     .trim();
 }
@@ -62,7 +54,10 @@ async function translateToFrench(text){
   try{
     const endpoint='https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fr&dt=t&q='+encodeURIComponent(text);
     const r=await fetch(endpoint,{
-      headers:{'Accept':'application/json','User-Agent':'ARK-Ascended-Hub/1.0 (+https://ark-ascended-hub.pages.dev/)'}
+      headers:{
+        'Accept':'application/json',
+        'User-Agent':'ARK-Ascended-Hub/1.0 (+https://ark-ascended-hub.pages.dev/)'
+      }
     });
     if(!r.ok)throw new Error(`translate ${r.status}`);
     const j=await r.json();
@@ -105,7 +100,7 @@ export async function onRequestGet(){
 
     const sourceHighlights=points.slice(0,6);
     const translated=sourceHighlights.length>=3?await translateHighlights(sourceHighlights):FALLBACK.highlights;
-    const translationSucceeded=translated.some((x,i)=>x!==sourceHighlights[i]);
+    const translationSucceeded=sourceHighlights.length>=3&&translated.some((x,i)=>x!==sourceHighlights[i]);
 
     return new Response(JSON.stringify({
       version,
