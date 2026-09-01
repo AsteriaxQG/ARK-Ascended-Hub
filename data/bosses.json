@@ -1,0 +1,9 @@
+[
+ {"map":"The Island","name":"Broodmother Lysrix","tiers":["Gamma","Bêta","Alpha"],"suggest":"Megatherium + Yutyrannus"},
+ {"map":"The Island","name":"Megapithecus","tiers":["Gamma","Bêta","Alpha"],"suggest":"Rex / Therizinosaur + Yutyrannus"},
+ {"map":"The Island","name":"Dragon","tiers":["Gamma","Bêta","Alpha"],"suggest":"Therizinosaur + Yutyrannus"},
+ {"map":"The Island","name":"Overseer","tiers":["Gamma","Bêta","Alpha"],"suggest":"Armée boss + préparation Tek Cave"},
+ {"map":"Scorched Earth","name":"Manticore","tiers":["Gamma","Bêta","Alpha"],"suggest":"Rex + Yutyrannus"},
+ {"map":"Aberration","name":"Rockwell","tiers":["Gamma","Bêta","Alpha"],"suggest":"Shotguns + mobilité / stratégie dédiée"},
+ {"map":"Extinction","name":"King Titan","tiers":["Gamma","Bêta","Alpha"],"suggest":"Titans apprivoisés + Mek"}
+]
