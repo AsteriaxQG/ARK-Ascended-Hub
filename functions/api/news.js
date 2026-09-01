@@ -68,23 +68,72 @@ function normalizeUrl(raw){
   try{return new URL(clean,HOME).href}catch{return ''}
 }
 
-function bestDate(html){
-  const candidates=[];
-  const metaDates=[
-    meta(html,'article:published_time'),
-    meta(html,'datePublished'),
-    meta(html,'date')
+function validIso(value){
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return '';
+  if(d.getTime()>NOW+86400000 || d.getFullYear()<2025) return '';
+  return d.toISOString();
+}
+
+function visibleDate(html){
+  const text=decode(html);
+  const patterns=[
+    /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(20\d{2})\b/i,
+    /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})\b/i,
+    /\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/
   ];
-  metaDates.forEach(x=>x&&candidates.push(x));
+  for(const re of patterns){
+    const m=text.match(re);
+    if(!m) continue;
+    let value='';
+    if(/[A-Za-z]/.test(m[1])) value=`${m[1]} ${m[2]}, ${m[3]}`;
+    else if(/[A-Za-z]/.test(m[2])) value=`${m[2]} ${m[1]}, ${m[3]}`;
+    else value=`${m[3]}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}T00:00:00Z`;
+    const iso=validIso(value); if(iso) return iso;
+  }
+  return '';
+}
+
+function bestDate(html){
+  const candidates=[
+    meta(html,'article:published_time'),
+    meta(html,'article:modified_time'),
+    meta(html,'datePublished'),
+    meta(html,'dateModified'),
+    meta(html,'date'),
+    meta(html,'publish_date')
+  ];
 
   for(const m of html.matchAll(/<time[^>]+datetime=["']([^"']+)["']/gi)) candidates.push(m[1]);
-  for(const m of html.matchAll(/["']datePublished["']\s*:\s*["']([^"']+)["']/gi)) candidates.push(m[1]);
+  for(const m of html.matchAll(/["'](?:datePublished|dateModified|uploadDate)["']\s*:\s*["']([^"']+)["']/gi)) candidates.push(m[1]);
 
-  const valid=candidates
-    .map(v=>new Date(v))
-    .filter(d=>!Number.isNaN(d.getTime()) && d.getTime()<=NOW+86400000 && d.getFullYear()>=2025)
-    .sort((a,b)=>b-a);
-  return valid[0]?.toISOString()||'';
+  const valid=candidates.map(validIso).filter(Boolean).sort((a,b)=>Date.parse(b)-Date.parse(a));
+  return valid[0] || visibleDate(html) || '';
+}
+
+function normalizeTitle(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+
+function repairedDate(item){
+  const direct=validIso(item.date); if(direct) return direct;
+  const key=normalizeTitle(item.title);
+  const known=FALLBACK.find(x=>normalizeTitle(x.title)===key);
+  if(known) return known.date;
+
+  const crunch=String(item.title||'').match(/Community Crunch\s+(\d+)/i);
+  if(crunch){
+    const n=Number(crunch[1]);
+    if(Number.isFinite(n) && n>450 && n<=521){
+      const anchor=Date.UTC(2026,7,29);
+      return new Date(anchor-(521-n)*7*86400000).toISOString();
+    }
+  }
+
+  const titleDate=String(item.title||'').match(/(?:Updated|Update|Live)?\s*[:\-]?\s*(\d{1,2})[\/.](\d{1,2})[\/.](20\d{2})/i);
+  if(titleDate){
+    const iso=validIso(`${titleDate[3]}-${String(titleDate[1]).padStart(2,'0')}-${String(titleDate[2]).padStart(2,'0')}T00:00:00Z`);
+    if(iso) return iso;
+  }
+  return '';
 }
 
 function categoryFor(title){
@@ -95,7 +144,7 @@ function categoryFor(title){
 
 async function detail(url, hintedTitle=''){
   try{
-    const r = await fetch(url,{headers:{'Accept':'text/html','User-Agent':'ARK-Ascended-Hub/2.0 (+https://ark-ascended-hub.pages.dev/)'}});
+    const r = await fetch(url,{headers:{'Accept':'text/html','User-Agent':'ARK-Ascended-Hub/2.1 (+https://ark-ascended-hub.pages.dev/)'}});
     if(!r.ok) return null;
     const h = await r.text();
     const title = meta(h,'og:title') || hintedTitle || decode((h.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]);
@@ -122,7 +171,7 @@ function discoverLinks(html){
     if(seen.has(canonical)) continue;
     seen.add(canonical);
     found.push({url:canonical,title:text});
-    if(found.length>=18) break;
+    if(found.length>=20) break;
   }
   return found;
 }
@@ -130,35 +179,33 @@ function discoverLinks(html){
 function sortAndClean(items){
   const unique=[];
   const seen=new Set();
-  for(const item of items){
-    if(!item?.title||!item?.url) continue;
-    const key=item.title.toLowerCase().replace(/[^a-z0-9]+/g,' ');
+  for(const raw of items){
+    if(!raw?.title||!raw?.url) continue;
+    const item={...raw,date:repairedDate(raw)};
+    if(!item.date) continue;
+    const key=normalizeTitle(item.title);
     if(seen.has(key)) continue;
     seen.add(key);
     unique.push(item);
   }
 
-  unique.sort((a,b)=>{
-    const ad=Date.parse(a.date||'')||0;
-    const bd=Date.parse(b.date||'')||0;
-    return bd-ad;
-  });
+  for(const fallback of FALLBACK){
+    const key=normalizeTitle(fallback.title);
+    if(!seen.has(key)){seen.add(key);unique.push(fallback)}
+  }
 
-  const recent=unique.filter(x=>{
-    const t=Date.parse(x.date||'');
-    return t && t>=Date.UTC(2026,0,1);
-  });
-  return (recent.length>=5?recent:unique).slice(0,12);
+  unique.sort((a,b)=>Date.parse(b.date)-Date.parse(a.date));
+  return unique.filter(x=>Date.parse(x.date)>=Date.UTC(2026,0,1)).slice(0,12);
 }
 
 export async function onRequestGet(){
   const headers={
     'content-type':'application/json;charset=UTF-8',
-    'cache-control':'public,max-age=300,s-maxage=300',
+    'cache-control':'public,max-age=180,s-maxage=180',
     'access-control-allow-origin':'*'
   };
   try{
-    const r = await fetch(HOME,{headers:{'Accept':'text/html','User-Agent':'ARK-Ascended-Hub/2.0 (+https://ark-ascended-hub.pages.dev/)'}});
+    const r = await fetch(HOME,{headers:{'Accept':'text/html','User-Agent':'ARK-Ascended-Hub/2.1 (+https://ark-ascended-hub.pages.dev/)'}});
     if(!r.ok) throw new Error(`source ${r.status}`);
     const html=await r.text();
     const links=discoverLinks(html);
