@@ -17,8 +17,8 @@ function openCreature(name){
 
 function showcase(){
   if(location.pathname!=='/creatures')return;
-  const app=q('#app'), grid=q('#creatureGrid');
-  if(!app||!grid||q('#wyvernFamily'))return;
+  const grid=q('#creatureGrid');
+  if(!grid||q('#wyvernFamily'))return;
   const section=document.createElement('section');
   section.id='wyvernFamily';
   section.className='wyvern-family';
@@ -51,7 +51,7 @@ function decorateAllCards(){
       card.dataset.frName=w.fr;
       card.setAttribute('aria-label',`Ouvrir la fiche ${w.fr}`);
       const h3=q('h3',card);
-      if(h3)h3.textContent=w.fr;
+      if(h3 && h3.textContent.trim()!==w.fr) h3.textContent=w.fr;
       const top=q('.creature-top > div',card);
       if(top&&!q('.wyvern-family-chip',top))top.insertAdjacentHTML('beforeend',`<span class="wyvern-family-chip">${w.icon} Wyverne de ${w.element.toLowerCase()}</span>`);
     });
@@ -64,7 +64,7 @@ function decorateAllModals(){
     const w=byAnyName(h1.textContent.trim())||byInternal(modal.dataset.arkName);
     if(!w)return;
     modal.dataset.arkName=w.name;
-    h1.textContent=w.fr;
+    if(h1.textContent.trim()!==w.fr) h1.textContent=w.fr;
     if(!q('.wyvern-modal-label',modal))h1.insertAdjacentHTML('afterend',`<div class="wyvern-modal-label">${w.icon} Variante ${w.element}</div>`);
     const p=q('p.muted',modal);
     if(p&&!q('.wyvern-tip',modal))p.insertAdjacentHTML('afterend',`<div class="wyvern-tip"><b>Obtention :</b> voler un œuf de ${w.fr.toLowerCase()} dans un nid sauvage, l’incuber, puis nourrir le bébé avec du Lait de Wyvern.</div>`);
@@ -77,7 +77,7 @@ function translateGlobalSearchResults(){
   if(!box)return;
   qa('.search-hit b',box).forEach(el=>{
     const w=byInternal(el.textContent.trim());
-    if(w)el.textContent=w.fr;
+    if(w && el.textContent.trim()!==w.fr)el.textContent=w.fr;
   });
 }
 
@@ -121,15 +121,12 @@ function enableGlobalAliasSearch(){
   });
 }
 
-/* Sécurité globale de fermeture : ferme exactement la modale dont la croix a été pressée.
-   Cela fonctionne sur desktop et mobile, même si un ancien cache avait créé plusieurs modales. */
 document.addEventListener('click',event=>{
   const close=event.target.closest('.modal-close,[data-close]');
   if(!close)return;
   event.preventDefault();
   event.stopPropagation();
-  const modal=close.closest('.modal');
-  modal?.remove();
+  close.closest('.modal')?.remove();
 },true);
 
 function run(){
@@ -140,9 +137,10 @@ function run(){
   enableGlobalAliasSearch();
   translateGlobalSearchResults();
 }
+
 const app=q('#app');
 if(app)new MutationObserver(()=>setTimeout(run,30)).observe(app,{childList:true,subtree:true});
-const bodyObserver=new MutationObserver(()=>setTimeout(run,20));
-bodyObserver.observe(document.body,{childList:true,subtree:true});
+/* Pas d'observer sur tout le body : il provoquait une boucle lors de la traduction des modales. */
+document.addEventListener('click',()=>setTimeout(()=>{decorateAllModals();translateGlobalSearchResults()},40));
 addEventListener('popstate',()=>setTimeout(run,40));
 setTimeout(run,80);
