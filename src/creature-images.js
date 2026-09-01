@@ -3,11 +3,24 @@ let pending = false;
 
 const IMAGE_FILES = {
   'Spinosaur': 'Spino.png',
+  'Fire Wyvern': 'Fire Wyvern.png',
+  'Lightning Wyvern': 'Lightning Wyvern.png',
+  'Poison Wyvern': 'Poison Wyvern.png',
+  'Ice Wyvern': 'Ice Wyvern.png',
   'Wyverne de feu': 'Fire Wyvern.png',
   'Wyverne de foudre': 'Lightning Wyvern.png',
   'Wyverne de poison': 'Poison Wyvern.png',
   'Wyverne de glace': 'Ice Wyvern.png'
 };
+
+const DISPLAY_NAMES = {
+  'Fire Wyvern':'Wyverne de feu',
+  'Lightning Wyvern':'Wyverne de foudre',
+  'Poison Wyvern':'Wyverne de poison',
+  'Ice Wyvern':'Wyverne de glace'
+};
+
+function displayName(name){ return DISPLAY_NAMES[name] || name; }
 
 function directWikiImage(name){
   const file = IMAGE_FILES[name] || `${name}.png`;
@@ -23,35 +36,40 @@ function creatureNamesOnPage(){
 function fallback(container, name){
   if(!container) return;
   container.classList.add('creature-img-fallback');
-  container.innerHTML = `<div class="creature-fallback-mark">${String(name || '?').slice(0,2).toUpperCase()}</div><small>Image ARK indisponible</small>`;
+  container.innerHTML = `<div class="creature-fallback-mark">${String(displayName(name) || '?').slice(0,2).toUpperCase()}</div><small>Image ARK indisponible</small>`;
 }
 
-function makeCreatureImage(name, src){
+function makeCreatureImage(name, src, internalName=name){
   const img = document.createElement('img');
   img.loading = 'lazy';
   img.decoding = 'async';
   img.referrerPolicy = 'no-referrer';
-  img.alt = `${name} — ARK: Survival Ascended`;
+  img.alt = `${displayName(name)} — ARK: Survival Ascended`;
   img.src = src;
   img.dataset.arkCreatureImage = '1';
   img.addEventListener('error', () => {
-    const direct = directWikiImage(name);
+    const direct = directWikiImage(internalName);
     if(img.dataset.directFallback !== '1' && img.src !== direct){
       img.dataset.directFallback = '1';
       img.src = direct;
       return;
     }
     const wrap = img.parentElement;
-    if(wrap) fallback(wrap, name);
+    if(wrap) fallback(wrap, internalName);
   });
   return img;
 }
 
 function prepareCards(){
   document.querySelectorAll('.creature-card[data-name]').forEach(card => {
+    const internal = card.dataset.name;
+    const visible = card.dataset.frName || displayName(internal);
+    if(DISPLAY_NAMES[internal]) card.dataset.frName = visible;
+    const h3 = card.querySelector('h3');
+    if(h3 && DISPLAY_NAMES[internal]) h3.textContent = visible;
     card.tabIndex = 0;
     card.setAttribute('role','button');
-    card.setAttribute('aria-label', `Ouvrir la fiche ${card.dataset.frName || card.dataset.name}`);
+    card.setAttribute('aria-label', `Ouvrir la fiche ${visible}`);
   });
 }
 
@@ -66,17 +84,21 @@ function applyCardImages(){
     if(current) return;
     container.classList.remove('creature-img-fallback');
     container.innerHTML = '';
-    container.appendChild(makeCreatureImage(card.dataset.frName || name, src));
+    container.appendChild(makeCreatureImage(card.dataset.frName || displayName(name), src, name));
   });
 }
 
 function applyModalImage(){
   const modal = document.querySelector('#modal .modal-panel');
   if(!modal) return;
-  const displayedName = modal.querySelector('h1')?.textContent?.trim();
-  const name = modal.dataset.arkName || displayedName;
-  if(!name) return;
-  const src = cache.get(name) || directWikiImage(displayedName || name) || directWikiImage(name);
+  const h1 = modal.querySelector('h1');
+  const rawName = modal.dataset.arkName || h1?.textContent?.trim();
+  const internalName = Object.keys(DISPLAY_NAMES).find(k => DISPLAY_NAMES[k] === rawName) || rawName;
+  if(!internalName) return;
+  const visibleName = displayName(internalName);
+  modal.dataset.arkName = internalName;
+  if(h1 && DISPLAY_NAMES[internalName]) h1.textContent = visibleName;
+  const src = cache.get(internalName) || directWikiImage(internalName);
 
   let target = modal.querySelector('.detail-img');
   if(!target) return;
@@ -84,11 +106,11 @@ function applyModalImage(){
   if(target.tagName === 'IMG') {
     if(target.dataset.arkCreatureImage === '1') return;
     target.src = src;
-    target.alt = `${displayedName || name} — ARK: Survival Ascended`;
+    target.alt = `${visibleName} — ARK: Survival Ascended`;
     target.referrerPolicy = 'no-referrer';
     target.dataset.arkCreatureImage = '1';
     target.addEventListener('error', () => {
-      const direct = directWikiImage(displayedName || name);
+      const direct = directWikiImage(internalName);
       if(target.dataset.directFallback !== '1' && target.src !== direct){
         target.dataset.directFallback = '1';
         target.src = direct;
@@ -97,7 +119,7 @@ function applyModalImage(){
     return;
   }
 
-  const img = makeCreatureImage(displayedName || name, src);
+  const img = makeCreatureImage(visibleName, src, internalName);
   img.className = 'detail-img';
   target.replaceWith(img);
 }
@@ -132,28 +154,8 @@ async function hydrate(){
   applyModalImage();
 }
 
-function openCard(card){
-  if(!card) return;
-  const button = card.querySelector('[data-creature]');
-  button?.click();
-  setTimeout(hydrate, 60);
-}
-
-document.addEventListener('click', event => {
-  const card = event.target.closest('.creature-card[data-name]');
-  if(!card) return;
-  if(event.target.closest('button,a,input,select,textarea,label')) return;
-  openCard(card);
-});
-
-document.addEventListener('keydown', event => {
-  if(event.key !== 'Enter' && event.key !== ' ') return;
-  const card = event.target.closest('.creature-card[data-name]');
-  if(!card) return;
-  if(event.target.closest('button,a,input,select,textarea,label')) return;
-  event.preventDefault();
-  openCard(card);
-});
+/* L'ouverture des cartes est volontairement gérée uniquement par creature-card-clicks.js.
+   Cela évite de créer deux modales superposées sur un seul clic. */
 
 const app = document.getElementById('app');
 if(app){
