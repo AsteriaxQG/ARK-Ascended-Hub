@@ -1,16 +1,16 @@
 const q=(s,r=document)=>r.querySelector(s);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]));
 const fmt=v=>{const d=new Date(v);return Number.isNaN(d.getTime())?v:new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'long',year:'numeric'}).format(d)};
 let running=false;
 
 function fallback(){return {
   version:'v93.7',title:'Notes de mise à jour serveur ASA — v93.7',date:'2026-08-27',platform:'Serveurs ASA',language:'fr',translation:'fallback',
   url:'https://survivetheark.com/index.php?/forums/topic/773786-asa-server-patch-notes-server-v937-updated-08272026/',
-  highlights:['Correction d’un plantage serveur','Ajout du Boaratos sur Astraeos','Ajout du Concavenator et de ses variantes','Ajout du Galleon pour Tides of Fortune','Ajout du Trireme pour Astraeos','Astraeos 0.1.4 : nouvelles zones, boss et contenu']
+  highlights:['Correction d’un plantage serveur','Ajout du Boaratos sur Astraeos, un énorme sanglier extrêmement agressif et brûlant, présent exclusivement sur Astraeos.','Ajout du Concavenator sur Scorched Earth, Ragnarok, Extinction et Astraeos.','Ajout du X-Concavenator sur Genesis.','Ajout du Concavenator aberrant sur Aberration. Ce chasseur de meute impitoyable se déplace sous les dunes et aveugle ses proies avec des nuages de sable.','Ajout du Galleon pour les propriétaires de Tides of Fortune : un immense navire conçu pour les bases-forteresses et équipé d’une puissante batterie de canons.']
 }}
 
 async function patchData(){
-  try{const r=await fetch('/api/patch-note',{cache:'no-store'});const j=await r.json();return j?.version?j:fallback()}catch{return fallback()}
+  try{const r=await fetch('/api/patch-note?fr=4',{cache:'no-store'});const j=await r.json();return j?.version?j:fallback()}catch{return fallback()}
 }
 
 function patchMarkup(p){
