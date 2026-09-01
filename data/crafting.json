@@ -1,0 +1,12 @@
+[
+ {"name":"Fondation en métal","station":"Forge / Inventaire","ingredients":{"Lingot de métal":50,"Ciment":15}},
+ {"name":"Mur en métal","station":"Forge / Inventaire","ingredients":{"Lingot de métal":25,"Ciment":7}},
+ {"name":"Plafond en métal","station":"Forge / Inventaire","ingredients":{"Lingot de métal":35,"Ciment":10}},
+ {"name":"Coffre-fort","station":"Fabricateur","ingredients":{"Lingot de métal":300,"Ciment":60,"Pétrole":30,"Polymère":30}},
+ {"name":"Réfrigérateur","station":"Fabricateur","ingredients":{"Lingot de métal":120,"Polymère":15,"Cristal":25,"Électronique":10}},
+ {"name":"Fabricateur","station":"Forge","ingredients":{"Lingot de métal":35,"Ciment":20,"Huile":50,"Étincelle":15,"Cristal":15}},
+ {"name":"Fusil longneck","station":"Forge","ingredients":{"Lingot de métal":95,"Bois":20,"Peau":25}},
+ {"name":"Tourelle automatique","station":"Fabricateur","ingredients":{"Lingot de métal":140,"Ciment":50,"Polymère":20,"Électronique":70}},
+ {"name":"Climatiseur","station":"Fabricateur","ingredients":{"Lingot de métal":80,"Électronique":15,"Polymère":5,"Cristal":15}},
+ {"name":"Générateur électrique","station":"Fabricateur","ingredients":{"Lingot de métal":25,"Électronique":10}}
+]
