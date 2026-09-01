@@ -30,9 +30,9 @@ function patchMarkup(p){
 
 function discordMarkup(){
   return `<section class="section" id="asteriaxDiscord">
-    <div class="section-head"><div><div class="eyebrow">COMMUNAUTÉ</div><h2>Rejoins le Discord</h2><p>Retrouve la communauté AsteriaxTTV pour discuter d’ARK, partager tes astuces et suivre les nouveautés.</p></div></div>
+    <div class="section-head"><div><div class="eyebrow">COMMUNAUTÉ</div><h2>Ark🦖 - Star Citizen 🚀</h2><p>Le serveur Discord de Chuck pour échanger autour d’ARK et de Star Citizen avec la communauté.</p></div></div>
     <article class="card v2-card" style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:22px">
-      <div style="display:flex;align-items:center;gap:14px;min-width:0"><div style="display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:#17262f;border:1px solid #31515b;font-size:28px">💬</div><div><h3 style="margin:0 0 5px">Discord AsteriaxTTV</h3><p class="muted" style="margin:0">Serveur communautaire ARK Ascended Hub.</p></div></div>
+      <div style="display:flex;align-items:center;gap:14px;min-width:0"><div style="display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:#17262f;border:1px solid #31515b;font-size:28px">💬</div><div><h3 style="margin:0 0 5px">Ark🦖 - Star Citizen 🚀</h3><p class="muted" style="margin:0">Serveur Discord de Chuck.</p></div></div>
       <a class="btn primary" href="https://discord.gg/a4NqecC8fA" target="_blank" rel="noreferrer">Rejoindre le Discord ↗</a>
     </article>
   </section>`;
