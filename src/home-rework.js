@@ -28,6 +28,16 @@ function patchMarkup(p){
   </section>`;
 }
 
+function discordMarkup(){
+  return `<section class="section" id="asteriaxDiscord">
+    <div class="section-head"><div><div class="eyebrow">COMMUNAUTÉ</div><h2>Rejoins le Discord</h2><p>Retrouve la communauté AsteriaxTTV pour discuter d’ARK, partager tes astuces et suivre les nouveautés.</p></div></div>
+    <article class="card v2-card" style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:22px">
+      <div style="display:flex;align-items:center;gap:14px;min-width:0"><div style="display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:#17262f;border:1px solid #31515b;font-size:28px">💬</div><div><h3 style="margin:0 0 5px">Discord AsteriaxTTV</h3><p class="muted" style="margin:0">Serveur communautaire ARK Ascended Hub.</p></div></div>
+      <a class="btn primary" href="https://discord.gg/a4NqecC8fA" target="_blank" rel="noreferrer">Rejoindre le Discord ↗</a>
+    </article>
+  </section>`;
+}
+
 async function run(){
   if(location.pathname!=='/'||running)return;
   const app=q('#app'); if(!app)return;
@@ -46,6 +56,11 @@ async function run(){
       if(dash)dash.insertAdjacentHTML('afterend',patchMarkup(p));else hero?.insertAdjacentHTML('afterend',patchMarkup(p));
       const consoleHead=q('.hero-console .console-head',hero);
       if(consoleHead&&!q('.console-patch',consoleHead))consoleHead.insertAdjacentHTML('beforeend',`<span class="console-patch">PATCH ${esc(p.version)}</span>`);
+    }
+    if(!q('#asteriaxDiscord',app)){
+      const quickSection=[...app.querySelectorAll('.section')].find(s=>q('h2',s)?.textContent.trim()==='Prépare ta session');
+      if(quickSection)quickSection.insertAdjacentHTML('afterend',discordMarkup());
+      else app.insertAdjacentHTML('beforeend',discordMarkup());
     }
   }finally{running=false}
 }
