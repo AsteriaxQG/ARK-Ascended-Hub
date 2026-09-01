@@ -42,39 +42,34 @@ function showcase(){
     </div>`;
   grid.parentNode.insertBefore(section,grid);
   qa('[data-family-creature]',section).forEach(b=>b.onclick=e=>{e.stopPropagation();openCreature(b.dataset.familyCreature)});
-  qa('.wyvern-variant-card',section).forEach(card=>{
-    card.onclick=e=>{if(e.target.closest('button,a'))return;openCreature(card.dataset.name)};
-    card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openCreature(card.dataset.name)}};
-  });
 }
 
-function decorateGrid(){
-  if(location.pathname!=='/creatures')return;
+function decorateAllCards(){
   WYVERNS.forEach(w=>{
-    const card=qa('#creatureGrid .creature-card').find(c=>c.dataset.name===w.name);
-    if(!card)return;
-    card.classList.add('wyvern-grid-card');
-    card.dataset.frName=w.fr;
-    card.setAttribute('aria-label',`Ouvrir la fiche ${w.fr}`);
-    const h3=q('h3',card);
-    if(h3)h3.textContent=w.fr;
-    const top=q('.creature-top > div',card);
-    if(top&&!q('.wyvern-family-chip',top))top.insertAdjacentHTML('beforeend',`<span class="wyvern-family-chip">${w.icon} Wyverne de ${w.element.toLowerCase()}</span>`);
+    qa(`.creature-card[data-name="${CSS.escape(w.name)}"]`).forEach(card=>{
+      card.classList.add('wyvern-grid-card');
+      card.dataset.frName=w.fr;
+      card.setAttribute('aria-label',`Ouvrir la fiche ${w.fr}`);
+      const h3=q('h3',card);
+      if(h3)h3.textContent=w.fr;
+      const top=q('.creature-top > div',card);
+      if(top&&!q('.wyvern-family-chip',top))top.insertAdjacentHTML('beforeend',`<span class="wyvern-family-chip">${w.icon} Wyverne de ${w.element.toLowerCase()}</span>`);
+    });
   });
 }
 
-function decorateModal(){
-  const modal=q('#modal .modal-panel');
-  if(!modal)return;
-  const h1=q('h1',modal); if(!h1)return;
-  const w=byAnyName(h1.textContent.trim())||byInternal(modal.dataset.arkName);
-  if(!w)return;
-  modal.dataset.arkName=w.name;
-  h1.textContent=w.fr;
-  if(!q('.wyvern-modal-label',modal))h1.insertAdjacentHTML('afterend',`<div class="wyvern-modal-label">${w.icon} Variante ${w.element}</div>`);
-  const p=q('p.muted',modal);
-  if(p&&!q('.wyvern-tip',modal))p.insertAdjacentHTML('afterend',`<div class="wyvern-tip"><b>Obtention :</b> voler un œuf de ${w.fr.toLowerCase()} dans un nid sauvage, l’incuber, puis nourrir le bébé avec du Lait de Wyvern.</div>`);
-  const tame=q('[data-tame-creature]',modal); if(tame)tame.remove();
+function decorateAllModals(){
+  qa('.modal .modal-panel').forEach(modal=>{
+    const h1=q('h1',modal); if(!h1)return;
+    const w=byAnyName(h1.textContent.trim())||byInternal(modal.dataset.arkName);
+    if(!w)return;
+    modal.dataset.arkName=w.name;
+    h1.textContent=w.fr;
+    if(!q('.wyvern-modal-label',modal))h1.insertAdjacentHTML('afterend',`<div class="wyvern-modal-label">${w.icon} Variante ${w.element}</div>`);
+    const p=q('p.muted',modal);
+    if(p&&!q('.wyvern-tip',modal))p.insertAdjacentHTML('afterend',`<div class="wyvern-tip"><b>Obtention :</b> voler un œuf de ${w.fr.toLowerCase()} dans un nid sauvage, l’incuber, puis nourrir le bébé avec du Lait de Wyvern.</div>`);
+    const tame=q('[data-tame-creature]',modal); if(tame)tame.remove();
+  });
 }
 
 function translateGlobalSearchResults(){
@@ -97,8 +92,7 @@ function enableFrenchAndEnglishCreatureSearch(){
       WYVERNS.forEach(w=>{
         const matches=[w.fr,w.name,...w.aliases].some(v=>v.toLowerCase().includes(needle)||needle.includes(v.toLowerCase()));
         if(!matches)return;
-        const card=qa('#creatureGrid .creature-card').find(c=>c.dataset.name===w.name);
-        if(card)card.classList.remove('hidden');
+        qa(`.creature-card[data-name="${CSS.escape(w.name)}"]`).forEach(card=>card.classList.remove('hidden'));
       });
     },0);
   });
@@ -127,16 +121,28 @@ function enableGlobalAliasSearch(){
   });
 }
 
+/* Sécurité globale de fermeture : ferme exactement la modale dont la croix a été pressée.
+   Cela fonctionne sur desktop et mobile, même si un ancien cache avait créé plusieurs modales. */
+document.addEventListener('click',event=>{
+  const close=event.target.closest('.modal-close,[data-close]');
+  if(!close)return;
+  event.preventDefault();
+  event.stopPropagation();
+  const modal=close.closest('.modal');
+  modal?.remove();
+},true);
+
 function run(){
   showcase();
-  decorateGrid();
-  decorateModal();
+  decorateAllCards();
+  decorateAllModals();
   enableFrenchAndEnglishCreatureSearch();
   enableGlobalAliasSearch();
   translateGlobalSearchResults();
 }
 const app=q('#app');
-if(app)new MutationObserver(()=>setTimeout(run,40)).observe(app,{childList:true,subtree:true});
-document.addEventListener('click',()=>setTimeout(run,60));
-addEventListener('popstate',()=>setTimeout(run,60));
-setTimeout(run,100);
+if(app)new MutationObserver(()=>setTimeout(run,30)).observe(app,{childList:true,subtree:true});
+const bodyObserver=new MutationObserver(()=>setTimeout(run,20));
+bodyObserver.observe(document.body,{childList:true,subtree:true});
+addEventListener('popstate',()=>setTimeout(run,40));
+setTimeout(run,80);
