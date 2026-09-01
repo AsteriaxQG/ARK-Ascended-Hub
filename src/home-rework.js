@@ -4,9 +4,9 @@ const fmt=v=>{const d=new Date(v);return Number.isNaN(d.getTime())?v:new Intl.Da
 let running=false;
 
 function fallback(){return {
-  version:'v93.7',title:'ASA Server Patch Notes — v93.7',date:'2026-08-27',platform:'Serveurs ASA',
+  version:'v93.7',title:'Notes de mise à jour serveur ASA — v93.7',date:'2026-08-27',platform:'Serveurs ASA',language:'fr',translation:'fallback',
   url:'https://survivetheark.com/index.php?/forums/topic/773786-asa-server-patch-notes-server-v937-updated-08272026/',
-  highlights:['Ajout du Boaratos sur Astraeos','Ajout du Concavenator et de ses variantes','Ajout du Galleon pour Tides of Fortune','Ajout du Trireme pour Astraeos','Astraeos 0.1.4 : nouvelles zones, boss et contenu','Correctifs généraux, performances et exploits']
+  highlights:['Correction d’un plantage serveur','Ajout du Boaratos sur Astraeos','Ajout du Concavenator et de ses variantes','Ajout du Galleon pour Tides of Fortune','Ajout du Trireme pour Astraeos','Astraeos 0.1.4 : nouvelles zones, boss et contenu']
 }}
 
 async function patchData(){
@@ -15,11 +15,12 @@ async function patchData(){
 
 function patchMarkup(p){
   const items=(p.highlights||[]).slice(0,6);
+  const sourceLabel=p.live===false?'CACHE FR':(p.translation==='automatique'?'SOURCE OFFICIELLE · FR AUTO':'SOURCE OFFICIELLE');
   return `<section class="section home-patch-section" id="latestPatch">
-    <div class="section-head patch-section-head"><div><div class="eyebrow">MISE À JOUR OFFICIELLE</div><h2>Dernier Patch Note</h2><p>Le dernier changelog ARK: Survival Ascended à connaître avant de lancer ta session.</p></div><span class="patch-live ${p.live===false?'offline':''}">${p.live===false?'CACHE':'SOURCE OFFICIELLE'}</span></div>
+    <div class="section-head patch-section-head"><div><div class="eyebrow">MISE À JOUR OFFICIELLE</div><h2>Dernier Patch Note</h2><p>Le dernier changelog ARK: Survival Ascended à connaître avant de lancer ta session.</p></div><span class="patch-live ${p.live===false?'offline':''}">${sourceLabel}</span></div>
     <article class="card patch-card v2-card">
       <div class="patch-version-panel"><span class="patch-kicker">ASA PATCH</span><strong>${esc(p.version)}</strong><span>${esc(p.platform||'ARK: Survival Ascended')}</span><time>${esc(fmt(p.date))}</time></div>
-      <div class="patch-main"><div class="patch-title-row"><div><div class="news-meta"><span class="tag teal">PATCH NOTE</span><span>${esc(fmt(p.date))}</span></div><h3>${esc(p.title||`Patch ${p.version}`)}</h3></div><a class="btn primary patch-source" target="_blank" rel="noreferrer" href="${esc(p.url)}">Patch complet ↗</a></div>
+      <div class="patch-main"><div class="patch-title-row"><div><div class="news-meta"><span class="tag teal">PATCH NOTE</span><span>${esc(fmt(p.date))}</span>${p.language==='fr'?'<span class="tag teal">FR</span>':''}</div><h3>${esc(p.title||`Patch ${p.version}`)}</h3></div><a class="btn primary patch-source" target="_blank" rel="noreferrer" href="${esc(p.url)}">Patch complet ↗</a></div>
         <div class="patch-highlights">${items.map((x,i)=>`<div class="patch-point"><span>${String(i+1).padStart(2,'0')}</span><p>${esc(x)}</p></div>`).join('')}</div>
         <div class="patch-tags"><span>Boaratos</span><span>Concavenator</span><span>Galleon</span><span>Trireme</span><span>Astraeos 0.1.4</span></div>
       </div>
