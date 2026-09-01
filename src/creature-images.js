@@ -1,6 +1,15 @@
 const cache = new Map();
 let pending = false;
 
+const IMAGE_FILES = {
+  'Spinosaur': 'Spino.png'
+};
+
+function directWikiImage(name){
+  const file = IMAGE_FILES[name] || `${name}.png`;
+  return `https://ark.wiki.gg/wiki/Special:Redirect/file/${encodeURIComponent(file)}`;
+}
+
 function creatureNamesOnPage(){
   return [...document.querySelectorAll('.creature-card[data-name]')]
     .map(card => card.dataset.name)
@@ -22,9 +31,15 @@ function makeCreatureImage(name, src){
   img.src = src;
   img.dataset.arkCreatureImage = '1';
   img.addEventListener('error', () => {
+    const direct = directWikiImage(name);
+    if(img.dataset.directFallback !== '1' && img.src !== direct){
+      img.dataset.directFallback = '1';
+      img.src = direct;
+      return;
+    }
     const wrap = img.parentElement;
     if(wrap) fallback(wrap, name);
-  }, { once:true });
+  });
   return img;
 }
 
@@ -42,10 +57,9 @@ function applyCardImages(){
     const name = card.dataset.name;
     const container = card.querySelector('.creature-img');
     if(!name || !container) return;
-    const src = cache.get(name);
-    if(!src) return;
+    const src = cache.get(name) || directWikiImage(name);
     const current = container.querySelector('img[data-ark-creature-image="1"]');
-    if(current && current.src === src) return;
+    if(current) return;
     container.classList.remove('creature-img-fallback');
     container.innerHTML = '';
     container.appendChild(makeCreatureImage(name, src));
@@ -56,17 +70,25 @@ function applyModalImage(){
   const modal = document.querySelector('#modal .modal-panel');
   if(!modal) return;
   const name = modal.querySelector('h1')?.textContent?.trim();
-  const src = cache.get(name);
-  if(!name || !src) return;
+  if(!name) return;
+  const src = cache.get(name) || directWikiImage(name);
 
   let target = modal.querySelector('.detail-img');
   if(!target) return;
 
   if(target.tagName === 'IMG') {
+    if(target.dataset.arkCreatureImage === '1') return;
     target.src = src;
     target.alt = `${name} — ARK: Survival Ascended`;
     target.referrerPolicy = 'no-referrer';
     target.dataset.arkCreatureImage = '1';
+    target.addEventListener('error', () => {
+      const direct = directWikiImage(name);
+      if(target.dataset.directFallback !== '1' && target.src !== direct){
+        target.dataset.directFallback = '1';
+        target.src = direct;
+      }
+    });
     return;
   }
 
@@ -88,9 +110,18 @@ async function hydrate(){
   pending = true;
   try{
     const res = await fetch(`/api/creature-images?names=${encodeURIComponent(names.join(','))}`, { cache:'force-cache' });
-    const data = await res.json();
-    Object.entries(data.images || {}).forEach(([name, src]) => cache.set(name, src || ''));
+    if(res.ok){
+      const data = await res.json();
+      Object.entries(data.images || {}).forEach(([name, src]) => {
+        if(src) cache.set(name, src);
+      });
+    }
   }catch{}
+
+  names.forEach(name => {
+    if(!cache.get(name)) cache.set(name, directWikiImage(name));
+  });
+
   pending = false;
   applyCardImages();
   applyModalImage();
