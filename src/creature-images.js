@@ -2,7 +2,11 @@ const cache = new Map();
 let pending = false;
 
 const IMAGE_FILES = {
-  'Spinosaur': 'Spino.png'
+  'Spinosaur': 'Spino.png',
+  'Wyverne de feu': 'Fire Wyvern.png',
+  'Wyverne de foudre': 'Lightning Wyvern.png',
+  'Wyverne de poison': 'Poison Wyvern.png',
+  'Wyverne de glace': 'Ice Wyvern.png'
 };
 
 function directWikiImage(name){
@@ -47,7 +51,7 @@ function prepareCards(){
   document.querySelectorAll('.creature-card[data-name]').forEach(card => {
     card.tabIndex = 0;
     card.setAttribute('role','button');
-    card.setAttribute('aria-label', `Ouvrir la fiche ${card.dataset.name}`);
+    card.setAttribute('aria-label', `Ouvrir la fiche ${card.dataset.frName || card.dataset.name}`);
   });
 }
 
@@ -62,16 +66,17 @@ function applyCardImages(){
     if(current) return;
     container.classList.remove('creature-img-fallback');
     container.innerHTML = '';
-    container.appendChild(makeCreatureImage(name, src));
+    container.appendChild(makeCreatureImage(card.dataset.frName || name, src));
   });
 }
 
 function applyModalImage(){
   const modal = document.querySelector('#modal .modal-panel');
   if(!modal) return;
-  const name = modal.querySelector('h1')?.textContent?.trim();
+  const displayedName = modal.querySelector('h1')?.textContent?.trim();
+  const name = modal.dataset.arkName || displayedName;
   if(!name) return;
-  const src = cache.get(name) || directWikiImage(name);
+  const src = cache.get(name) || directWikiImage(displayedName || name) || directWikiImage(name);
 
   let target = modal.querySelector('.detail-img');
   if(!target) return;
@@ -79,11 +84,11 @@ function applyModalImage(){
   if(target.tagName === 'IMG') {
     if(target.dataset.arkCreatureImage === '1') return;
     target.src = src;
-    target.alt = `${name} — ARK: Survival Ascended`;
+    target.alt = `${displayedName || name} — ARK: Survival Ascended`;
     target.referrerPolicy = 'no-referrer';
     target.dataset.arkCreatureImage = '1';
     target.addEventListener('error', () => {
-      const direct = directWikiImage(name);
+      const direct = directWikiImage(displayedName || name);
       if(target.dataset.directFallback !== '1' && target.src !== direct){
         target.dataset.directFallback = '1';
         target.src = direct;
@@ -92,7 +97,7 @@ function applyModalImage(){
     return;
   }
 
-  const img = makeCreatureImage(name, src);
+  const img = makeCreatureImage(displayedName || name, src);
   img.className = 'detail-img';
   target.replaceWith(img);
 }
