@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#071015" />
+  <meta name="description" content="ARK Ascended Hub — actualités, créatures, cartes, tame, élevage et outils pour ARK: Survival Ascended." />
+  <title>ARK Ascended Hub</title>
+  <link rel="preconnect" href="https://ark.wiki.gg" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <header class="topbar">
+    <a class="brand" href="/" data-route="home" aria-label="ARK Ascended Hub - Accueil">
+      <span class="brand-mark">A</span>
+      <span><b>ARK</b> <em>ASCENDED HUB</em></span>
+    </a>
+    <nav class="main-nav" aria-label="Navigation principale">
+      <a href="/" data-route="home">Accueil</a>
+      <a href="/actus" data-route="news">Actualités</a>
+      <a href="/creatures" data-route="creatures">Créatures</a>
+      <a href="/cartes" data-route="maps">Cartes</a>
+      <a href="/taming" data-route="taming">Taming</a>
+      <a href="/elevage" data-route="breeding">Élevage</a>
+      <a href="/outils" data-route="tools">Outils</a>
+      <a href="/mon-ark" data-route="myark">Mon ARK</a>
+    </nav>
+    <button class="menu-btn" id="menuBtn" aria-label="Ouvrir le menu">☰</button>
+  </header>
+
+  <section class="search-strip">
+    <div class="global-search-wrap">
+      <span>⌕</span>
+      <input id="globalSearch" autocomplete="off" placeholder="Rechercher un Rex, du métal, un boss, une carte…" />
+      <kbd>Ctrl K</kbd>
+    </div>
+    <div id="searchResults" class="search-results hidden"></div>
+  </section>
+
+  <main id="app" tabindex="-1"></main>
+
+  <footer>
+    <div><b>ARK Ascended Hub</b> — compagnon communautaire non officiel pour ARK: Survival Ascended.</div>
+    <div class="footer-links">
+      <a href="https://survivetheark.com/" target="_blank" rel="noreferrer">ARK officiel</a>
+      <a href="https://ark.wiki.gg/" target="_blank" rel="noreferrer">Wiki officiel communautaire</a>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>
