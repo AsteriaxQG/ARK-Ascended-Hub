@@ -1,12 +1,13 @@
 const ALIASES = {
-  'Spinosaur': 'Spinosaurus',
-  'Therizinosaur': 'Therizinosaurus',
   'Giga': 'Giganotosaurus',
   'Argy': 'Argentavis',
   'Rhynio': 'Rhyniognatha',
   'Anky': 'Ankylosaurus',
   'Doedic': 'Doedicurus'
 };
+
+const fallbackFile = name =>
+  `https://ark.wiki.gg/wiki/Special:Redirect/file/${encodeURIComponent(`${name}.png`)}`;
 
 export async function onRequestGet({ request }) {
   const url = new URL(request.url);
@@ -34,25 +35,49 @@ export async function onRequestGet({ request }) {
     const upstream = await fetch(api.toString(), {
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'ARK-Ascended-Hub/1.0 (+https://ark-ascended-hub.pages.dev/)'
+        'User-Agent': 'ARK-Ascended-Hub/1.1 (+https://ark-ascended-hub.pages.dev/)'
       },
       cf: { cacheTtl: 86400, cacheEverything: true }
     });
 
     if (!upstream.ok) throw new Error(`ARK Wiki ${upstream.status}`);
     const data = await upstream.json();
-    const byTitle = {};
+    const pages = Object.values(data?.query?.pages || {});
+    const byTitle = new Map();
 
-    for (const page of Object.values(data?.query?.pages || {})) {
+    for (const page of pages) {
       if (!page?.title) continue;
       const source = page.thumbnail?.source || page.original?.source || '';
-      if (source) byTitle[page.title] = source;
+      if (source) byTitle.set(page.title.toLowerCase(), source);
     }
+
+    const redirects = new Map();
+    for (const item of data?.query?.normalized || []) {
+      redirects.set(String(item.from).toLowerCase(), item.to);
+    }
+    for (const item of data?.query?.redirects || []) {
+      redirects.set(String(item.from).toLowerCase(), item.to);
+    }
+
+    const resolveTitle = title => {
+      let current = title;
+      const seen = new Set();
+      while (redirects.has(current.toLowerCase()) && !seen.has(current.toLowerCase())) {
+        seen.add(current.toLowerCase());
+        current = redirects.get(current.toLowerCase());
+      }
+      return current;
+    };
 
     const images = {};
     requested.forEach((originalName, index) => {
-      const resolvedName = lookup[index];
-      images[originalName] = byTitle[resolvedName] || byTitle[originalName] || '';
+      const requestedTitle = lookup[index];
+      const resolvedTitle = resolveTitle(requestedTitle);
+      images[originalName] =
+        byTitle.get(resolvedTitle.toLowerCase()) ||
+        byTitle.get(requestedTitle.toLowerCase()) ||
+        byTitle.get(originalName.toLowerCase()) ||
+        fallbackFile(resolvedTitle);
     });
 
     return Response.json(
@@ -60,9 +85,12 @@ export async function onRequestGet({ request }) {
       { headers: { 'Cache-Control': 'public, max-age=86400, s-maxage=86400' } }
     );
   } catch (error) {
+    const images = Object.fromEntries(
+      requested.map((name, index) => [name, fallbackFile(lookup[index])])
+    );
     return Response.json(
-      { images: {}, error: 'Impossible de charger les images ARK pour le moment.' },
-      { status: 200, headers: { 'Cache-Control': 'public, max-age=300' } }
+      { images, source: 'ARK Official Community Wiki', fallback: true },
+      { status: 200, headers: { 'Cache-Control': 'public, max-age=900' } }
     );
   }
 }
